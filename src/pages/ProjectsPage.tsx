@@ -559,7 +559,7 @@ const ProjectsPage: React.FC = () => {
           
           <Box sx={{ display: 'flex', gap: 2, flexWrap: 'wrap' }}>
             {/* Proje Oluştur Butonu */}
-            <Button
+            {/* <Button
               variant="contained"
               color="primary"
               startIcon={<AddIcon />}
@@ -591,7 +591,7 @@ const ProjectsPage: React.FC = () => {
               }}
             >
               Yeni Proje Oluştur
-            </Button>
+            </Button> */}
             
             {/* Projeye Katıl Butonu */}
             <Button
@@ -753,7 +753,7 @@ const ProjectsPage: React.FC = () => {
           <Typography color="text.secondary" align="center" sx={{ maxWidth: 500, mb: 3 }}>
             Yeni bir proje oluşturarak görevlerinizi düzenlemeye başlayabilirsiniz.
           </Typography>
-          <Button 
+          {/* <Button 
             variant="contained" 
             startIcon={<AddIcon />}
             onClick={() => navigate('/projects/create')}
@@ -784,7 +784,7 @@ const ProjectsPage: React.FC = () => {
             }}
           >
             İlk Projeni Oluştur
-          </Button>
+          </Button> */}
         </Box>
       ) : (
         <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: '1fr 1fr 1fr', lg: '1fr 1fr 1fr 1fr' }, gap: { xs: 2, sm: 3, md: 4 } }}>
