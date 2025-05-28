@@ -520,7 +520,7 @@ const Calendar: React.FC<CalendarProps> = ({ tasks, onTaskClick, onNewTask }) =>
       {/* Hafta Günleri */}
       <Grid container spacing={1} sx={{ mb: 1 }}>
         {weekDays.map((day: string, index: number) => (
-          <Grid key={index} size={12/7}>
+          <Grid key={index} xs={12/7}>
             <Paper 
               sx={{ 
                 p: 1, 
@@ -540,7 +540,7 @@ const Calendar: React.FC<CalendarProps> = ({ tasks, onTaskClick, onNewTask }) =>
       {/* Takvim Günleri */}
       <Grid container spacing={1}>
         {calendarDays.map((day: CalendarDay, index: number) => (
-          <Grid key={index} size={12/7}>
+          <Grid key={index} xs={12/7}>
             <Paper 
               elevation={day.isToday ? 6 : 1}
               sx={{ 

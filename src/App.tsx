@@ -34,7 +34,9 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 // Özel global stiller
 const getGlobalStyles = (mode: 'light' | 'dark') => ({
   body: {
-    backgroundImage: `url('/images/task-management-bg.jpg')`,
+    background: mode === 'light' 
+      ? 'linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%)' 
+      : 'linear-gradient(135deg, #2c3e50 0%, #000000 100%)',
     backgroundSize: 'cover',
     backgroundPosition: 'center',
     backgroundAttachment: 'fixed',
@@ -47,9 +49,10 @@ const getGlobalStyles = (mode: 'light' | 'dark') => ({
       left: 0,
       right: 0,
       bottom: 0,
-      backgroundColor: mode === 'light' 
-        ? 'rgba(255, 255, 255, 0.3)' 
-        : 'rgba(0, 0, 0, 0.7)',
+      background: mode === 'light'
+        ? 'url("/images/pattern-light.svg")'
+        : 'url("/images/pattern-dark.svg")',
+      opacity: 0.05,
       zIndex: -1,
     }
   },
