@@ -25,6 +25,8 @@ import PersonAddIcon from '@mui/icons-material/PersonAdd';
 import SettingsIcon from '@mui/icons-material/Settings';
 import PersonIcon from '@mui/icons-material/Person';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
+import DashboardIcon from '@mui/icons-material/Dashboard';
+
 import { useAuth } from '../context/AuthContext';
 import ThemeToggle from './ThemeToggle';
 import { useTheme } from '../context/ThemeContext';
@@ -259,6 +261,12 @@ const NavigationBar: React.FC = () => {
                     <SettingsIcon fontSize="small" />
                   </ListItemIcon>
                   <ListItemText primary="Ayarlar" />
+                </MenuItem>
+                <MenuItem sx={{ py: 1.5 }} onClick={() => { handleClose(); navigate('/admin') }}>
+                  <ListItemIcon>
+                    <DashboardIcon fontSize="small" />
+                  </ListItemIcon>
+                  <ListItemText primary="Admin Paneli" />
                 </MenuItem>
                 <Divider />
                 <MenuItem onClick={handleLogout} sx={{ py: 1.5 }}>
