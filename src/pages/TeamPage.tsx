@@ -1670,7 +1670,6 @@ const TeamPage: React.FC = () => {
                   px: 2
                 }}
               >
-                Proje içi organizasyon yapısını ve ekip hiyerarşisini aşağıda görebilirsiniz.
                 Projelerinizi seçerek takım üyelerini görüntüleyebilir ve yönetebilirsiniz.
               </Typography>
             </Box>
@@ -2187,28 +2186,9 @@ const TeamPage: React.FC = () => {
                     textAlign: 'center',
                     lineHeight: 1.5
                   }}>
-                    Proje oluşturarak ekip hiyerarşisi oluşturmaya başlayabilirsiniz.
+                    Ekibe katılarak takım hiyerarşisini görebilirsiniz.
                   </Typography>
-                  <Button 
-                    variant="contained" 
-                    color="secondary"
-                    startIcon={<AddIcon />}
-                    onClick={() => navigate('/projects/create')}
-                    sx={{ 
-                      borderRadius: '10px',
-                      py: 1.2,
-                      px: 3,
-                      background: 'linear-gradient(45deg, #9c27b0 30%, #ba68c8 90%)',
-                      boxShadow: '0 3px 6px rgba(156, 39, 176, .3)',
-                      '&:hover': {
-                        background: 'linear-gradient(45deg, #7b1fa2 30%, #9c27b0 90%)',
-                        boxShadow: '0 4px 10px rgba(156, 39, 176, .45)',
-                        transform: 'translateY(-2px)'
-                      }
-                    }}
-                  >
-                    Proje Oluştur
-                  </Button>
+                  <Box sx={{ height: 48, borderRadius: '10px', background: 'linear-gradient(45deg, #f3e6fa 30%, #f8eafd 90%)', boxShadow: '0 3px 6px rgba(156, 39, 176, 0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', my: 1 }} />
                 </Box>
               </Box>
             )}
@@ -2343,7 +2323,9 @@ const TeamPage: React.FC = () => {
                 </Typography>
               </Box>
             </Box>
-          ) : projects.length > 0 && !selectedProjectId ? (
+          ) : projects.length > 0 && !selectedProjectId ? null
+          : projects.length === 0 ? null
+          : (
             <Box sx={{ 
                 display: 'flex', 
                 flexDirection: 'column', 
@@ -2382,46 +2364,7 @@ const TeamPage: React.FC = () => {
                 Lütfen ekip organizasyonunu görüntülemek için bir proje seçin.
               </Alert>
             </Box>
-          ) : projects.length === 0 ? (
-            <Box sx={{ 
-                display: 'flex', 
-                flexDirection: 'column', 
-                alignItems: 'center', 
-                width: '100%', 
-                py: 3
-            }}>
-              <Alert 
-                severity="info" 
-                variant="outlined"
-                icon={<InfoOutlinedIcon sx={{ color: '#9c27b0', fontSize: '1.5rem' }} />}
-                sx={{ 
-                  borderColor: 'rgba(156, 39, 176, 0.4)', 
-                  bgcolor: 'rgba(255, 255, 255, 0.9)',
-                  color: '#9c27b0',
-                  '& .MuiAlert-message': {
-                    fontWeight: 600,
-                    fontSize: '1rem',
-                    textAlign: 'center',
-                    color: '#9c27b0'
-                  },
-                  borderRadius: 3,
-                  py: 2.5,
-                  px: 3,
-                  width: { xs: '100%', sm: '80%', md: '60%' },
-                  mx: 'auto',
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.05)',
-                  animation: 'pulse 2s infinite ease-in-out',
-                  '@keyframes pulse': {
-                    '0%': { boxShadow: '0 4px 20px rgba(156, 39, 176, 0.1)' },
-                    '50%': { boxShadow: '0 4px 25px rgba(156, 39, 176, 0.2)' },
-                    '100%': { boxShadow: '0 4px 20px rgba(156, 39, 176, 0.1)' }
-                  }
-                }}
-              >
-                Lütfen ekip organizasyonunu görüntülemek için bir proje seçin.
-              </Alert>
-            </Box>
-          ) : null}
+          )}
         </Box>
       </Box>
       
