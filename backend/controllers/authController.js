@@ -99,9 +99,9 @@ exports.login = async (req, res) => {
   logRequestDetails(req, 'LOGIN REQUEST');
   
   try {
-    const { username, password } = req.body;
+    const { username, password, isAdminLogin } = req.body;
     
-    console.log(`Attempting login for user: ${username}`);
+    console.log(`Attempting login for user: ${username}${isAdminLogin ? ' (Admin Login)' : ''}`);
     
     // Find user by username
     const user = await User.findOne({ username });
@@ -110,61 +110,98 @@ exports.login = async (req, res) => {
       return res.status(400).json({ error: 'Geçersiz giriş bilgileri' });
     }
     
+    // Admin girişi kontrolü
+    if (isAdminLogin && user.role !== 'admin' && user.role !== 'superadmin') {
+      console.log(`Admin login failed: user "${username}" is not an admin`);
+      return res.status(403).json({ 
+        error: 'Bu giriş yöntemi sadece yöneticiler içindir' 
+      });
+    }
+    
     // Hesap aktif mi kontrol et
     if (!user.isActive) {
       console.log(`Login failed: account "${username}" is deactivated`);
-      return res.status(400).json({ error: 'Bu hesap dondurulmuş. Lütfen hesabınızı tekrar aktifleştirin.' });
+      return res.status(400).json({ error: 'Bu hesap dondurulmuş. Lütfen yönetici ile iletişime geçin.' });
+    }
+    
+    // Başarısız giriş denemelerini kontrol et
+    if (user.failedLoginAttempts >= 5) {
+      const lockoutTime = 15 * 60 * 1000; // 15 dakika
+      if (user.lastLoginAttempt && (Date.now() - user.lastLoginAttempt < lockoutTime)) {
+        return res.status(429).json({ 
+          error: 'Çok fazla başarısız deneme. Lütfen 15 dakika sonra tekrar deneyin.' 
+        });
+      }
+      // Süre geçmişse sıfırla
+      user.failedLoginAttempts = 0;
     }
     
     // Check password
     console.log('Checking password...');
     const isMatch = await user.comparePassword(password);
     if (!isMatch) {
-      console.log('Login failed: incorrect password');
+      user.failedLoginAttempts += 1;
+      user.lastLoginAttempt = Date.now();
+      await user.save();
+      
+      // 5 başarısız denemeden sonra hesabı kilitle
+      if (user.failedLoginAttempts >= 5) {
+        await user.lockAccount();
+        return res.status(400).json({ 
+          error: 'Çok fazla başarısız deneme. Hesabınız kilitlendi. Lütfen yönetici ile iletişime geçin.' 
+        });
+      }
+      
       return res.status(400).json({ error: 'Geçersiz giriş bilgileri' });
     }
     
+    // Başarılı giriş - sayaçları sıfırla
+    await user.resetFailedAttempts();
+    
     // Generate JWT token
     console.log('Generating JWT token...');
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET || '159753', {
-      expiresIn: '7d'
-    });
+    const token = jwt.sign(
+      { 
+        id: user._id,
+        role: user.role,
+        adminAccessLevel: user.adminAccessLevel 
+      }, 
+      process.env.JWT_SECRET || '159753',
+      { expiresIn: '7d' }
+    );
     
     // Oturum bilgilerini kaydet
-    // Tarayıcı ve cihaz bilgilerini al
     const userAgent = req.headers['user-agent'] || 'Unknown';
     const ip = req.ip || req.connection.remoteAddress || 'Unknown';
     
-    // 7 gün sonra token'ın süresi dolacak
-    const expiresAt = new Date();
-    expiresAt.setDate(expiresAt.getDate() + 7);
-    
-    // Session oluştur
-    await user.addSession({
+    const sessionData = {
       token,
       ip,
-      device: detectDevice(userAgent),
-      browser: detectBrowser(userAgent),
-      location: 'Bilinmeyen konum', // Gerçek uygulamada IP bazlı konum hizmeti entegre edilebilir
-      expiresAt
-    });
+      device: userAgent,
+      browser: userAgent,
+      expiresAt: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000) // 7 gün
+    };
     
-    console.log(`Login successful for user: ${username}`);
+    await user.addSession(sessionData);
+    
     res.json({
       token,
       user: {
         id: user._id,
-        name: user.name,
-        surname: user.surname,
         username: user.username,
-        email: user.email
+        email: user.email,
+        role: user.role,
+        adminAccessLevel: user.adminAccessLevel,
+        name: user.name,
+        surname: user.surname
       }
     });
+    
   } catch (error) {
     logError(error, 'LOGIN ERROR');
     res.status(500).json({ 
       error: 'Giriş işlemi sırasında bir hata oluştu',
-      details: error.message
+      details: error.message 
     });
   }
 };

@@ -11,7 +11,8 @@ import {
   Paper,
   CircularProgress,
   Checkbox,
-  FormControlLabel
+  FormControlLabel,
+  Switch
 } from '@mui/material';
 import { useAuth } from '../context/AuthContext';
 import { useLoading } from '../context/LoadingContext';
@@ -23,6 +24,7 @@ const LoginPage: React.FC = () => {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [rememberMe, setRememberMe] = useState(false);
+  const [isAdminLogin, setIsAdminLogin] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const { setLoading } = useLoading();
   const { mode } = useTheme();
@@ -69,7 +71,7 @@ const LoginPage: React.FC = () => {
     }
     
     try {
-      await login(username, password, rememberMe);
+      await login(username, password, isAdminLogin, rememberMe);
     } catch (err) {
       console.error('Giriş sırasında hata oluştu:', err);
     } finally {
@@ -116,7 +118,7 @@ const LoginPage: React.FC = () => {
               textShadow: isLightMode ? 'none' : '0 2px 5px rgba(0,0,0,0.2)'
             }}
           >
-            Giriş Yap
+            {isAdminLogin ? 'Yönetici Girişi' : 'Giriş Yap'}
           </Typography>
           
           {error && (
@@ -217,26 +219,49 @@ const LoginPage: React.FC = () => {
               }}
             />
             
-            <FormControlLabel
-              control={
-                <Checkbox 
-                  checked={rememberMe}
-                  onChange={(e) => setRememberMe(e.target.checked)}
-                  color="primary"
-                  sx={{
-                    color: isLightMode ? 'rgba(0, 0, 0, 0.54)' : 'rgba(255, 255, 255, 0.7)',
-                    '&.Mui-checked': {
-                      color: isLightMode ? 'primary.main' : 'primary.light',
-                    }
-                  }}
-                />
-              }
-              label="Beni hatırla"
-              sx={{ 
-                mt: 1,
-                color: isLightMode ? 'text.secondary' : 'rgba(255, 255, 255, 0.7)',
-              }}
-            />
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mt: 1 }}>
+              <FormControlLabel
+                control={
+                  <Checkbox 
+                    checked={rememberMe}
+                    onChange={(e) => setRememberMe(e.target.checked)}
+                    color="primary"
+                    sx={{
+                      color: isLightMode ? 'rgba(0, 0, 0, 0.54)' : 'rgba(255, 255, 255, 0.7)',
+                      '&.Mui-checked': {
+                        color: isLightMode ? 'primary.main' : 'primary.light',
+                      }
+                    }}
+                  />
+                }
+                label="Beni hatırla"
+                sx={{ 
+                  color: isLightMode ? 'text.secondary' : 'rgba(255, 255, 255, 0.7)',
+                }}
+              />
+              
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={isAdminLogin}
+                    onChange={(e) => setIsAdminLogin(e.target.checked)}
+                    color="primary"
+                    sx={{
+                      '& .MuiSwitch-switchBase.Mui-checked': {
+                        color: isLightMode ? 'primary.main' : 'primary.light',
+                        '& + .MuiSwitch-track': {
+                          backgroundColor: isLightMode ? 'primary.main' : 'primary.light',
+                        },
+                      },
+                    }}
+                  />
+                }
+                label="Yönetici Girişi"
+                sx={{ 
+                  color: isLightMode ? 'text.secondary' : 'rgba(255, 255, 255, 0.7)',
+                }}
+              />
+            </Box>
             
             <Button
               type="submit"
@@ -246,18 +271,28 @@ const LoginPage: React.FC = () => {
                 mt: 3, 
                 mb: 2, 
                 height: 54,
-                background: 'linear-gradient(45deg, #9c27b0 30%, #bb86fc 90%)',
-                boxShadow: '0 3px 5px 2px rgba(156, 39, 176, .3)',
+                background: isAdminLogin 
+                  ? 'linear-gradient(45deg, #d32f2f 30%, #ff5252 90%)'
+                  : 'linear-gradient(45deg, #9c27b0 30%, #bb86fc 90%)',
+                boxShadow: isAdminLogin
+                  ? '0 3px 5px 2px rgba(211, 47, 47, .3)'
+                  : '0 3px 5px 2px rgba(156, 39, 176, .3)',
                 borderRadius: '0.75rem',
                 transition: 'all 0.3s ease-in-out',
                 '&:hover': {
-                  background: 'linear-gradient(45deg, #8e24aa 30%, #a66eed 90%)',
-                  boxShadow: '0 5px 12px rgba(156, 39, 176, .5)',
+                  background: isAdminLogin
+                    ? 'linear-gradient(45deg, #b71c1c 30%, #ff1744 90%)'
+                    : 'linear-gradient(45deg, #8e24aa 30%, #a66eed 90%)',
+                  boxShadow: isAdminLogin
+                    ? '0 5px 12px rgba(211, 47, 47, .5)'
+                    : '0 5px 12px rgba(156, 39, 176, .5)',
                   transform: 'translateY(-3px) scale(1.02)'
                 },
                 '&:active': {
                   transform: 'translateY(1px)',
-                  boxShadow: '0 2px 4px rgba(156, 39, 176, .4)'
+                  boxShadow: isAdminLogin
+                    ? '0 2px 4px rgba(211, 47, 47, .4)'
+                    : '0 2px 4px rgba(156, 39, 176, .4)'
                 },
                 fontFamily: "'Nunito', sans-serif",
                 fontWeight: 600,
@@ -270,7 +305,7 @@ const LoginPage: React.FC = () => {
               {isLoading ? (
                 <CircularProgress size={24} color="inherit" />
               ) : (
-                'Giriş Yap'
+                isAdminLogin ? 'Yönetici Olarak Giriş Yap' : 'Giriş Yap'
               )}
             </Button>
             <Box sx={{ textAlign: 'center' }}>
