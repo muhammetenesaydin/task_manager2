@@ -36,11 +36,20 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import AttachFileIcon from '@mui/icons-material/AttachFile';
 
 // Kurs tipi tanımı
+interface Lesson {
+  id: string;
+  title: string;
+  videoUrl: string;
+  order: number;
+  description?: string;
+}
+
 interface Course {
   id: string;
   title: string;
   description: string;
-  videoUrl?: string;
+  thumbnail?: string;
+  lessons?: Lesson[];
   resources?: {
     id: string;
     title: string;
@@ -66,7 +75,30 @@ const mockEducationService = {
             id: '1',
             title: 'React Temelleri',
             description: 'React kütüphanesinin temel kavramları ve bileşen yapısı',
-            videoUrl: 'https://www.youtube.com/embed/dGcsHMXbSOA',
+            thumbnail: 'https://example.com/thumbnails/react.jpg',
+            lessons: [
+              { 
+                id: '1001', 
+                title: 'React Nedir?', 
+                videoUrl: 'https://www.youtube.com/embed/dGcsHMXbSOA',
+                order: 0,
+                description: 'React kütüphanesine giriş' 
+              },
+              { 
+                id: '1002', 
+                title: 'JSX Kullanımı', 
+                videoUrl: 'https://www.youtube.com/embed/uQJC5XRzXNs',
+                order: 1,
+                description: 'JSX sözdizimi ve kullanımı' 
+              },
+              { 
+                id: '1003', 
+                title: 'Component Yapısı', 
+                videoUrl: 'https://www.youtube.com/embed/dQVCxODfueg',
+                order: 2,
+                description: 'React bileşenlerinin yapısı ve kullanımı' 
+              }
+            ],
             resources: [
               { id: '101', title: 'React Cheat Sheet', fileUrl: '/files/react-cheatsheet.pdf' },
               { id: '102', title: 'JSX Örnekleri', fileUrl: '/files/jsx-examples.pdf' }
@@ -80,7 +112,23 @@ const mockEducationService = {
             id: '2',
             title: 'TypeScript ile Geliştirme',
             description: 'TypeScript dilinin temelleri ve React ile kullanımı',
-            videoUrl: 'https://www.youtube.com/embed/BCg4U1FzODs',
+            thumbnail: 'https://example.com/thumbnails/typescript.jpg',
+            lessons: [
+              { 
+                id: '2001', 
+                title: 'TypeScript Temelleri', 
+                videoUrl: 'https://www.youtube.com/embed/BCg4U1FzODs',
+                order: 0,
+                description: 'TypeScript diline giriş' 
+              },
+              { 
+                id: '2002', 
+                title: 'Tip Tanımlamaları', 
+                videoUrl: 'https://www.youtube.com/embed/ahCwqrYpIuM',
+                order: 1,
+                description: 'TypeScript tip sisteminin kullanımı' 
+              }
+            ],
             resources: [
               { id: '103', title: 'TypeScript Handbook', fileUrl: '/files/ts-handbook.pdf' }
             ],
@@ -101,7 +149,8 @@ const mockEducationService = {
         resolve({
           id: newId,
           ...course,
-          resources: [],
+          lessons: course.lessons || [],
+          resources: course.resources || [],
           comments: []
         });
       }, 1000);
@@ -123,6 +172,39 @@ const mockEducationService = {
     return new Promise<boolean>((resolve) => {
       setTimeout(() => {
         console.log('Kurs silindi:', id);
+        resolve(true);
+      }, 800);
+    });
+  },
+  
+  addLesson: async (courseId: string, lesson: Omit<Lesson, 'id'>) => {
+    // API'ye ders ekleme işlemi simülasyonu
+    return new Promise<Lesson>((resolve) => {
+      setTimeout(() => {
+        const newId = Math.random().toString(36).substring(2, 9);
+        resolve({
+          id: newId,
+          ...lesson
+        });
+      }, 800);
+    });
+  },
+  
+  updateLesson: async (courseId: string, lessonId: string, lessonData: Partial<Lesson>) => {
+    // API'ye ders güncelleme işlemi simülasyonu
+    return new Promise<boolean>((resolve) => {
+      setTimeout(() => {
+        console.log('Ders güncellendi:', courseId, lessonId, lessonData);
+        resolve(true);
+      }, 800);
+    });
+  },
+  
+  deleteLesson: async (courseId: string, lessonId: string) => {
+    // API'den ders silme işlemi simülasyonu
+    return new Promise<boolean>((resolve) => {
+      setTimeout(() => {
+        console.log('Ders silindi:', courseId, lessonId);
         resolve(true);
       }, 800);
     });
@@ -156,6 +238,7 @@ const mockEducationService = {
 export const EducationManager: React.FC = () => {
   const [courses, setCourses] = useState<Course[]>([]);
   const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
+  const [selectedLesson, setSelectedLesson] = useState<Lesson | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
   const [saving, setSaving] = useState<boolean>(false);
   const [error, setError] = useState<string | null>(null);
@@ -164,19 +247,33 @@ export const EducationManager: React.FC = () => {
   
   // Dialog durumları
   const [courseDialogOpen, setCourseDialogOpen] = useState<boolean>(false);
+  const [lessonDialogOpen, setLessonDialogOpen] = useState<boolean>(false);
   const [resourceDialogOpen, setResourceDialogOpen] = useState<boolean>(false);
   const [commentDialogOpen, setCommentDialogOpen] = useState<boolean>(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
+  const [deleteLessonDialogOpen, setDeleteLessonDialogOpen] = useState<boolean>(false);
   
   // Form verileri
   const [formCourseData, setFormCourseData] = useState<{
     title: string;
     description: string;
-    videoUrl: string;
+    thumbnail: string;
   }>({
     title: '',
     description: '',
-    videoUrl: ''
+    thumbnail: ''
+  });
+  
+  const [formLessonData, setFormLessonData] = useState<{
+    title: string;
+    description: string;
+    videoUrl: string;
+    order: number;
+  }>({
+    title: '',
+    description: '',
+    videoUrl: '',
+    order: 0
   });
   
   const [formResourceData, setFormResourceData] = useState<{
@@ -222,10 +319,16 @@ export const EducationManager: React.FC = () => {
     const { name, value } = e.target;
     
     // Hangi formun güncelleneceğini belirle
-    if (name === 'title' || name === 'description' || name === 'videoUrl') {
+    if (name === 'title' || name === 'description' || name === 'thumbnail') {
       setFormCourseData(prev => ({
         ...prev,
         [name]: value
+      }));
+    } else if (name === 'lessonTitle' || name === 'lessonDescription' || name === 'videoUrl' || name === 'order') {
+      setFormLessonData(prev => ({
+        ...prev,
+        [name === 'lessonTitle' ? 'title' : (name === 'lessonDescription' ? 'description' : name)]: 
+          name === 'order' ? parseInt(value) || 0 : value
       }));
     } else if (name === 'resourceTitle' || name === 'fileUrl') {
       setFormResourceData(prev => ({
@@ -246,7 +349,7 @@ export const EducationManager: React.FC = () => {
     setFormCourseData({
       title: '',
       description: '',
-      videoUrl: ''
+      thumbnail: ''
     });
     setCourseDialogOpen(true);
   };
@@ -257,7 +360,7 @@ export const EducationManager: React.FC = () => {
     setFormCourseData({
       title: course.title,
       description: course.description,
-      videoUrl: course.videoUrl || ''
+      thumbnail: course.thumbnail || ''
     });
     setCourseDialogOpen(true);
   };
@@ -266,6 +369,45 @@ export const EducationManager: React.FC = () => {
   const handleDeleteCourse = (course: Course) => {
     setSelectedCourse(course);
     setDeleteDialogOpen(true);
+  };
+  
+  // Ders ekle
+  const handleAddLesson = (course: Course) => {
+    setSelectedCourse(course);
+    setSelectedLesson(null);
+    
+    // Derslerin sıra numarası için en son dersin sırasını al ve bir arttır
+    const lastOrder = course.lessons && course.lessons.length > 0
+      ? Math.max(...course.lessons.map(l => l.order)) + 1
+      : 0;
+    
+    setFormLessonData({
+      title: '',
+      description: '',
+      videoUrl: '',
+      order: lastOrder
+    });
+    setLessonDialogOpen(true);
+  };
+  
+  // Ders düzenle
+  const handleEditLesson = (course: Course, lesson: Lesson) => {
+    setSelectedCourse(course);
+    setSelectedLesson(lesson);
+    setFormLessonData({
+      title: lesson.title,
+      description: lesson.description || '',
+      videoUrl: lesson.videoUrl,
+      order: lesson.order
+    });
+    setLessonDialogOpen(true);
+  };
+  
+  // Ders sil
+  const handleDeleteLesson = (course: Course, lesson: Lesson) => {
+    setSelectedCourse(course);
+    setSelectedLesson(lesson);
+    setDeleteLessonDialogOpen(true);
   };
   
   // Kaynak ekle
@@ -318,6 +460,96 @@ export const EducationManager: React.FC = () => {
       setCourseDialogOpen(false);
     } catch (err) {
       setError('Kurs kaydedilirken bir hata oluştu');
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  // Ders kaydet
+  const handleSaveLesson = async () => {
+    if (!selectedCourse) return;
+    
+    try {
+      setSaving(true);
+      
+      if (selectedLesson) {
+        // Mevcut dersi güncelle
+        const isSuccess = await mockEducationService.updateLesson(
+          selectedCourse.id,
+          selectedLesson.id,
+          formLessonData
+        );
+        
+        if (isSuccess) {
+          // Kurslar listesini güncelle
+          setCourses(prev => prev.map(course => 
+            course.id === selectedCourse.id 
+              ? { 
+                  ...course, 
+                  lessons: course.lessons?.map(lesson =>
+                    lesson.id === selectedLesson.id
+                      ? { ...lesson, ...formLessonData }
+                      : lesson
+                  )
+                }
+              : course
+          ));
+          setSuccess('Ders başarıyla güncellendi');
+        }
+      } else {
+        // Yeni ders ekle
+        const newLesson = await mockEducationService.addLesson(
+          selectedCourse.id,
+          formLessonData
+        );
+        
+        // Kurslar listesini güncelle
+        setCourses(prev => prev.map(course => 
+          course.id === selectedCourse.id 
+            ? { 
+                ...course, 
+                lessons: [...(course.lessons || []), newLesson]
+              }
+            : course
+        ));
+        
+        setSuccess('Ders başarıyla eklendi');
+      }
+      
+      setLessonDialogOpen(false);
+    } catch (err) {
+      setError('Ders kaydedilirken bir hata oluştu');
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
+  };
+  
+  // Ders silme işlemi
+  const handleConfirmDeleteLesson = async () => {
+    if (!selectedCourse || !selectedLesson) return;
+    
+    try {
+      setSaving(true);
+      const isSuccess = await mockEducationService.deleteLesson(selectedCourse.id, selectedLesson.id);
+      
+      if (isSuccess) {
+        // Kurslar listesini güncelle
+        setCourses(prev => prev.map(course => 
+          course.id === selectedCourse.id 
+            ? { 
+                ...course, 
+                lessons: course.lessons?.filter(lesson => lesson.id !== selectedLesson.id)
+              }
+            : course
+        ));
+        setSuccess('Ders başarıyla silindi');
+      }
+      
+      setDeleteLessonDialogOpen(false);
+    } catch (err) {
+      setError('Ders silinirken bir hata oluştu');
       console.error(err);
     } finally {
       setSaving(false);
@@ -462,7 +694,7 @@ export const EducationManager: React.FC = () => {
                   </AccordionSummary>
                   <AccordionDetails>
                     <Tabs value={tabValue} onChange={handleTabChange} sx={{ mb: 2 }}>
-                      <Tab label="Video" icon={<VideoLibraryIcon />} iconPosition="start" />
+                      <Tab label="Dersler" icon={<VideoLibraryIcon />} iconPosition="start" />
                       <Tab 
                         label={`Kaynaklar (${course.resources?.length || 0})`} 
                         icon={<AttachFileIcon />} 
@@ -475,23 +707,58 @@ export const EducationManager: React.FC = () => {
                       />
                     </Tabs>
                     
-                    {/* Video Sekmesi */}
+                    {/* Dersler Sekmesi */}
                     {tabValue === 0 && (
                       <Box>
-                        {course.videoUrl ? (
-                          <Box sx={{ mt: 2 }}>
-                            <Typography variant="subtitle1" gutterBottom>Video Bağlantısı:</Typography>
-                            <TextField 
-                              fullWidth 
-                              value={course.videoUrl} 
-                              InputProps={{ readOnly: true }}
-                              variant="outlined"
-                              size="small" 
-                            />
-                          </Box>
-                        ) : (
-                          <Typography>Henüz bir video bağlantısı eklenmemiş.</Typography>
-                        )}
+                        <Button 
+                          variant="outlined" 
+                          startIcon={<AddIcon />} 
+                          sx={{ mb: 2 }}
+                          onClick={() => handleAddLesson(course)}
+                        >
+                          Yeni Ders Ekle
+                        </Button>
+                        
+                        <List sx={{ bgcolor: 'background.paper' }}>
+                          {course.lessons && course.lessons.length > 0 ? (
+                            [...course.lessons]
+                              .sort((a, b) => a.order - b.order)
+                              .map(lesson => (
+                                <ListItem 
+                                  key={lesson.id}
+                                  secondaryAction={
+                                    <Box>
+                                      <IconButton 
+                                        edge="end" 
+                                        aria-label="düzenle"
+                                        onClick={() => handleEditLesson(course, lesson)}
+                                        sx={{ mr: 1 }}
+                                      >
+                                        <EditIcon />
+                                      </IconButton>
+                                      <IconButton 
+                                        edge="end" 
+                                        aria-label="sil"
+                                        onClick={() => handleDeleteLesson(course, lesson)}
+                                        color="error"
+                                      >
+                                        <DeleteIcon />
+                                      </IconButton>
+                                    </Box>
+                                  }
+                                >
+                                  <ListItemText 
+                                    primary={`${lesson.order + 1}. ${lesson.title}`}
+                                    secondary={lesson.description || 'Açıklama yok'} 
+                                  />
+                                </ListItem>
+                            ))
+                          ) : (
+                            <ListItem>
+                              <ListItemText primary="Henüz bir ders eklenmemiş." />
+                            </ListItem>
+                          )}
+                        </List>
                       </Box>
                     )}
                     
@@ -630,11 +897,11 @@ export const EducationManager: React.FC = () => {
           />
           <TextField
             margin="dense"
-            name="videoUrl"
-            label="Video URL (YouTube embed URL)"
-            placeholder="https://www.youtube.com/embed/video_id"
+            name="thumbnail"
+            label="Kurs Resmi"
+            placeholder="https://example.com/image.jpg"
             fullWidth
-            value={formCourseData.videoUrl}
+            value={formCourseData.thumbnail}
             onChange={handleFormChange}
           />
         </DialogContent>
@@ -646,6 +913,93 @@ export const EducationManager: React.FC = () => {
             disabled={saving || !formCourseData.title || !formCourseData.description}
           >
             {saving ? 'Kaydediliyor...' : 'Kaydet'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Ders Ekleme/Düzenleme Dialog */}
+      <Dialog 
+        open={lessonDialogOpen} 
+        onClose={() => setLessonDialogOpen(false)}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle>{selectedLesson ? 'Dersi Düzenle' : 'Yeni Ders Ekle'}</DialogTitle>
+        <DialogContent>
+          <TextField
+            margin="dense"
+            name="lessonTitle"
+            label="Ders Başlığı"
+            fullWidth
+            value={formLessonData.title}
+            onChange={handleFormChange}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            margin="dense"
+            name="lessonDescription"
+            label="Ders Açıklaması"
+            fullWidth
+            multiline
+            rows={3}
+            value={formLessonData.description}
+            onChange={handleFormChange}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            margin="dense"
+            name="videoUrl"
+            label="Video URL (YouTube embed URL)"
+            placeholder="https://www.youtube.com/embed/video_id"
+            fullWidth
+            value={formLessonData.videoUrl}
+            onChange={handleFormChange}
+            sx={{ mb: 2 }}
+          />
+          <TextField
+            margin="dense"
+            name="order"
+            label="Sıra Numarası"
+            type="number"
+            fullWidth
+            value={formLessonData.order}
+            onChange={handleFormChange}
+            helperText="Dersin sıralama numarası (0'dan başlar)"
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setLessonDialogOpen(false)}>İptal</Button>
+          <Button 
+            onClick={handleSaveLesson} 
+            variant="contained" 
+            disabled={saving || !formLessonData.title || !formLessonData.videoUrl}
+          >
+            {saving ? 'Kaydediliyor...' : 'Kaydet'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Ders Silme Dialog */}
+      <Dialog
+        open={deleteLessonDialogOpen}
+        onClose={() => setDeleteLessonDialogOpen(false)}
+      >
+        <DialogTitle>Dersi Sil</DialogTitle>
+        <DialogContent>
+          <Typography>
+            <strong>{selectedLesson?.title}</strong> dersini silmek istediğinize emin misiniz?
+            Bu işlem geri alınamaz.
+          </Typography>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setDeleteLessonDialogOpen(false)}>İptal</Button>
+          <Button 
+            onClick={handleConfirmDeleteLesson} 
+            variant="contained" 
+            color="error"
+            disabled={saving}
+          >
+            {saving ? 'Siliniyor...' : 'Sil'}
           </Button>
         </DialogActions>
       </Dialog>
