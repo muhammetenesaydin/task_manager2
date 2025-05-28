@@ -30,6 +30,7 @@ const LearningAdminPage = lazy(() => import('./pages/LearningAdminPage'));
 const CalendarPage = lazy(() => import('./pages/CalendarPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const AdminPanel = lazy(() => import('./pages/AdminPanel'));
 
 // Özel global stiller
 const getGlobalStyles = (mode: 'light' | 'dark') => ({
@@ -321,6 +322,10 @@ function AppContent() {
                       <ProfilePage />
                     </ProtectedRoute>
                   } 
+                />
+                <Route 
+                  path="/admin" 
+                  element={<AdminPanel />} 
                 />
                 {/* Geçersiz route durumunda projeler sayfasına yönlendir */}
                 <Route 

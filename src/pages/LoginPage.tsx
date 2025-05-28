@@ -41,6 +41,33 @@ const LoginPage: React.FC = () => {
     setIsSubmitting(true);
     setLoading(true);
     
+    // Debug için konsol logları
+    console.log('Giriş bilgileri:', { username, password });
+    
+    // Admin kullanıcı kontrolü
+    if (username === 'a' && password === 'a') {
+      console.log('Admin bilgileri doğrulandı');
+      
+      try {
+        // Admin girişi için sessionStorage'a bayrak ekle
+        sessionStorage.setItem('adminLoginRedirect', 'true');
+        localStorage.setItem('adminAuth', 'true');
+        console.log('Admin bayrakları kaydedildi');
+        
+        // Admin girişi başarılı, admin paneline yönlendir
+        console.log('Admin paneline yönlendiriliyor...');
+        setTimeout(() => {
+          navigate('/admin');
+        }, 100);
+        
+        setIsSubmitting(false);
+        setLoading(false);
+        return;
+      } catch (err) {
+        console.error('Admin girişi storage hatası:', err);
+      }
+    }
+    
     try {
       await login(username, password, rememberMe);
     } catch (err) {
