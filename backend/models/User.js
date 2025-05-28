@@ -78,6 +78,20 @@ const userSchema = new mongoose.Schema({
       default: Date.now
     }
   },
+  role: {
+    type: String,
+    enum: ['user', 'admin', 'superadmin'],
+    default: 'user'
+  },
+  adminAccessLevel: {
+    type: Number,
+    default: 0  // 0: normal kullanıcı, 1: admin, 2: superadmin
+  },
+  lastLoginAttempt: Date,
+  failedLoginAttempts: {
+    type: Number,
+    default: 0
+  },
   isActive: {
     type: Boolean,
     default: true
@@ -150,6 +164,27 @@ userSchema.methods.terminateSession = async function(sessionId) {
     return true;
   }
   return false;
+};
+
+// Başarısız giriş denemelerini sıfırla
+userSchema.methods.resetFailedAttempts = async function() {
+  this.failedLoginAttempts = 0;
+  this.lastLoginAttempt = null;
+  await this.save();
+};
+
+// Hesabı kilitle
+userSchema.methods.lockAccount = async function() {
+  this.isActive = false;
+  await this.save();
+};
+
+// Hesabı aç
+userSchema.methods.unlockAccount = async function() {
+  this.isActive = true;
+  this.failedLoginAttempts = 0;
+  this.lastLoginAttempt = null;
+  await this.save();
 };
 
 const User = mongoose.model('User', userSchema);

@@ -160,9 +160,16 @@ interface User {
   id: string;
   username: string;
   email: string;
-  role: string; // 'user', 'admin', 'manager' gibi değerler alabilir
+  role: 'user' | 'admin' | 'superadmin';
+  adminAccessLevel: number;
   name?: string;
   surname?: string;
+  profileImage?: {
+    url: string;
+    filename?: string;
+    path?: string;
+    updatedAt?: string;
+  };
 }
 
 // Oturum geçmişi verisi
@@ -181,7 +188,7 @@ interface AuthContextType {
   token: string | null;
   loading: boolean;
   error: string | null;
-  login: (username: string, password: string, rememberMe?: boolean) => Promise<boolean>;
+  login: (username: string, password: string, isAdminLogin: boolean, rememberMe: boolean) => Promise<boolean>;
   register: (userData: RegisterData) => Promise<boolean>;
   logout: () => void;
   setUser: (user: User | null) => void;
@@ -195,6 +202,9 @@ interface AuthContextType {
   terminateSession: (sessionId: string) => Promise<boolean>;
   deactivateAccount: () => Promise<boolean>;
   deleteAccount: (username: string) => Promise<boolean>;
+  isAdmin: () => boolean;
+  isSuperAdmin: () => boolean;
+  hasAdminAccess: (requiredLevel: number) => boolean;
 }
 
 interface RegisterData {
@@ -216,8 +226,9 @@ const AuthContext = createContext<AuthContextType | null>(null);
 // Provider component
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
+  const [authenticated, setAuthenticated] = useState<boolean>(false);
   const [token, setToken] = useState<string | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
   const [initialized, setInitialized] = useState(false);
   const [isServerReachable, setIsServerReachable] = useState(true); // Başlangıçta bağlantı var kabul edilir
@@ -442,7 +453,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const clearError = () => setError(null);
 
   // Login fonksiyonunu güncelle
-  const login = async (username: string, password: string, rememberMe: boolean = false): Promise<boolean> => {
+  const login = async (
+    username: string, 
+    password: string, 
+    isAdminLogin: boolean = false,
+    rememberMe: boolean = false
+  ): Promise<boolean> => {
     clearError();
     setLoading(true);
     
@@ -454,71 +470,44 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return false;
       }
       
-      console.log('Login işlemi başlatılıyor:', { username, rememberMe });
+      console.log('Login işlemi başlatılıyor:', { username, isAdminLogin, rememberMe });
       
-      const response = await api.post('/auth/login', { username, password });
-      const responseData = response.data;
+      const response = await api.post('/auth/login', { 
+        username, 
+        password,
+        isAdminLogin 
+      });
       
-      // API cevabı farklı formatlarda olabilir, uygun şekilde işleyelim
-      const userData = responseData.user || responseData;
-      const newToken = responseData.token || responseData.accessToken;
+      const { token, user } = response.data;
       
-      if (newToken && userData) {
-        setToken(newToken);
-        setUser(userData);
-        
-        // "Beni hatırla" durumuna göre saklama lokasyonu seçimi
-        if (rememberMe) {
-          // Kalıcı oturum - localStorage'a kaydet
-          localStorage.setItem('token', newToken);
-          localStorage.setItem('user', JSON.stringify(userData));
-          
-          // sessionStorage'dan temizle
-          sessionStorage.removeItem('token');
-          sessionStorage.removeItem('user');
-          
-          // Tercih kaydı
-          localStorage.setItem('remember_me', 'true');
-        } else {
-          // Geçici oturum - sessionStorage'a kaydet
-          sessionStorage.setItem('token', newToken);
-          sessionStorage.setItem('user', JSON.stringify(userData));
-          
-          // localStorage'dan temizle
-          localStorage.removeItem('token');
-          localStorage.removeItem('user');
-          
-          // Tercih kaydı
-          localStorage.setItem('remember_me', 'false');
-        }
-        
-        console.log('Login başarılı:', userData.username, rememberMe ? '(Kalıcı oturum)' : '(Geçici oturum)');
-        setLoading(false);
-        return true;
+      // Admin girişi kontrolü
+      if (isAdminLogin && user.role !== 'admin' && user.role !== 'superadmin') {
+        setError('Bu giriş yöntemi sadece yöneticiler içindir');
+        return false;
       }
-      
-      setError('Giriş başarısız. Lütfen bilgilerinizi kontrol edin.');
-      setLoading(false);
-      return false;
-    } catch (err: any) {
-      console.error('Login hatası:', err);
-      
-      // API hatası mı yoksa ağ hatası mı kontrol et
-      if (err.response) {
-        // API'den gelen hata
-        const errorMsg = err.response.data?.error || 'Giriş yapılamadı. Lütfen bilgilerinizi kontrol edin.';
-        setError(errorMsg);
-      } else if (err.request) {
-        // Yanıt alınamadı (ağ hatası)
-        const errorMsg = 'Sunucuya erişilemiyor. Lütfen internet bağlantınızı kontrol edin.';
-        setError(errorMsg);
+
+      // Token'ı kaydet
+      if (rememberMe) {
+        localStorage.setItem('token', token);
       } else {
-        // İstek göndermeden önce bir hata oluştu
-        setError('Bir hata oluştu. Lütfen daha sonra tekrar deneyin.');
+        sessionStorage.setItem('token', token);
+      }
+
+      setUser(user);
+      setAuthenticated(true);
+      return true;
+    } catch (error: any) {
+      const errorMessage = error.response?.data?.error || 'Giriş yapılırken bir hata oluştu';
+      setError(errorMessage);
+      
+      // Hesap kilitlendi hatası için özel mesaj
+      if (error.response?.status === 429) {
+        setError('Çok fazla başarısız deneme. Lütfen 15 dakika sonra tekrar deneyin.');
       }
       
-      setLoading(false);
       return false;
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -743,6 +732,21 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
+  // Admin yetkisi kontrolü
+  const isAdmin = (): boolean => {
+    return user?.role === 'admin' || user?.role === 'superadmin';
+  };
+
+  // Superadmin yetkisi kontrolü
+  const isSuperAdmin = (): boolean => {
+    return user?.role === 'superadmin';
+  };
+
+  // Admin erişim seviyesi kontrolü
+  const hasAdminAccess = (requiredLevel: number): boolean => {
+    return (user?.adminAccessLevel || 0) >= requiredLevel;
+  };
+
   // Uygulama hala ilk yüklemesini tamamlamadıysa, yükleniyor göster
   if (!initialized) {
     return (
@@ -777,6 +781,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         terminateSession,
         deactivateAccount,
         deleteAccount,
+        isAdmin,
+        isSuperAdmin,
+        hasAdminAccess,
         uploadProfileImage
       }}
     >
