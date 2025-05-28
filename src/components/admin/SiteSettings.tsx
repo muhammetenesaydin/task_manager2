@@ -16,7 +16,9 @@ import {
   InputLabel,
   Select,
   MenuItem,
-  SelectChangeEvent
+  SelectChangeEvent,
+  Switch,
+  FormControlLabel
 } from '@mui/material';
 import SaveIcon from '@mui/icons-material/Save';
 import InfoIcon from '@mui/icons-material/Info';
@@ -27,14 +29,20 @@ const mockSiteService = {
     // API'den site ayarlarını alma işlemi simülasyonu
     return new Promise<{
       siteName: string;
-      emailDomain: string;
+      companyName: string;
+      allowOpenRegistration: boolean;
+      defaultUserRole: string;
       autoAssignProject: boolean;
+      maintenanceMode: boolean;
     }>((resolve) => {
       setTimeout(() => {
         resolve({
           siteName: 'Task Manager App',
-          emailDomain: '@orneksite.com',
-          autoAssignProject: true
+          companyName: 'Örnek Şirket A.Ş.',
+          allowOpenRegistration: true,
+          defaultUserRole: 'user',
+          autoAssignProject: true,
+          maintenanceMode: false
         });
       }, 800);
     });
@@ -42,8 +50,11 @@ const mockSiteService = {
   
   updateSiteSettings: async (settings: {
     siteName: string;
-    emailDomain: string;
+    companyName: string;
+    allowOpenRegistration: boolean;
+    defaultUserRole: string;
     autoAssignProject: boolean;
+    maintenanceMode: boolean;
   }) => {
     // API'ye site ayarlarını gönderme işlemi simülasyonu
     return new Promise<boolean>((resolve) => {
@@ -59,12 +70,18 @@ const mockSiteService = {
 export const SiteSettings: React.FC = () => {
   const [settings, setSettings] = useState<{
     siteName: string;
-    emailDomain: string;
+    companyName: string;
+    allowOpenRegistration: boolean;
+    defaultUserRole: string;
     autoAssignProject: boolean;
+    maintenanceMode: boolean;
   }>({
     siteName: '',
-    emailDomain: '',
-    autoAssignProject: true
+    companyName: '',
+    allowOpenRegistration: true,
+    defaultUserRole: 'user',
+    autoAssignProject: true,
+    maintenanceMode: false
   });
   
   const [loading, setLoading] = useState<boolean>(true);
@@ -98,11 +115,21 @@ export const SiteSettings: React.FC = () => {
     }));
   };
   
-  // Select değişikliklerini işle
-  const handleSelectChange = (e: SelectChangeEvent) => {
+  // Switch değişikliklerini işle
+  const handleSwitchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, checked } = e.target;
     setSettings(prev => ({
       ...prev,
-      autoAssignProject: e.target.value === 'true'
+      [name]: checked
+    }));
+  };
+  
+  // Select değişikliklerini işle
+  const handleSelectChange = (e: SelectChangeEvent) => {
+    const { name, value } = e.target;
+    setSettings(prev => ({
+      ...prev,
+      [name]: value
     }));
   };
   
@@ -142,60 +169,105 @@ export const SiteSettings: React.FC = () => {
   return (
     <Box>
       <Typography variant="h5" gutterBottom>
-        Site ve Proje Ayarları
+        Site ve Sistem Ayarları
       </Typography>
       <Divider sx={{ mb: 3 }} />
       
       <Grid container spacing={3}>
-        {/* Site İsmi Ayarları */}
-        <Grid item xs={12} md={6}>
+        {/* Genel Site Ayarları */}
+        <Grid item xs={12}>
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Site İsmi
+                Genel Site Ayarları
               </Typography>
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                <InfoIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />
-                Bu isim kullanıcıların göreceği ana sayfa başlığında görünecektir
-              </Typography>
-              <TextField
-                fullWidth
-                name="siteName"
-                label="Site İsmi"
-                value={settings.siteName}
-                onChange={handleChange}
-                sx={{ mb: 2 }}
-              />
+              <Grid container spacing={2}>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    name="siteName"
+                    label="Site İsmi"
+                    value={settings.siteName}
+                    onChange={handleChange}
+                    sx={{ mb: 2 }}
+                    helperText="Bu isim, kullanıcıların göreceği ana sayfa başlığı olacaktır"
+                  />
+                </Grid>
+                <Grid item xs={12} md={6}>
+                  <TextField
+                    fullWidth
+                    name="companyName"
+                    label="Şirket İsmi"
+                    value={settings.companyName}
+                    onChange={handleChange}
+                    sx={{ mb: 2 }}
+                    helperText="Raporlarda ve faturalarda görünecek şirket ismi"
+                  />
+                </Grid>
+                <Grid item xs={12}>
+                  <FormControlLabel
+                    control={
+                      <Switch
+                        checked={settings.maintenanceMode}
+                        onChange={handleSwitchChange}
+                        name="maintenanceMode"
+                        color="warning"
+                      />
+                    }
+                    label="Bakım Modu (Aktif olduğunda sadece adminler giriş yapabilir)"
+                  />
+                </Grid>
+              </Grid>
             </CardContent>
           </Card>
         </Grid>
         
-        {/* E-posta Uzantısı Ayarları */}
+        {/* Kullanıcı Kayıt Ayarları */}
         <Grid item xs={12} md={6}>
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
-                Kayıt Mail Uzantısı
+                Kullanıcı Kayıt Ayarları
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 <InfoIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />
-                Otomatik proje ataması için e-posta uzantısını belirleyin
+                Sistemde nasıl kullanıcı kaydı yapılabileceğini ayarlayın
               </Typography>
-              <TextField
-                fullWidth
-                name="emailDomain"
-                label="E-posta Uzantısı"
-                value={settings.emailDomain}
-                onChange={handleChange}
-                placeholder="@firma.com"
-                sx={{ mb: 2 }}
+              
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={settings.allowOpenRegistration}
+                    onChange={handleSwitchChange}
+                    name="allowOpenRegistration"
+                    color="primary"
+                  />
+                }
+                label="Açık Kayıt (Kapalıysa sadece admin kullanıcı ekleyebilir)"
+                sx={{ mb: 2, display: 'block' }}
               />
+              
+              <FormControl fullWidth sx={{ mb: 2 }}>
+                <InputLabel id="default-role-label">Varsayılan Kullanıcı Rolü</InputLabel>
+                <Select
+                  labelId="default-role-label"
+                  id="default-role-select"
+                  name="defaultUserRole"
+                  value={settings.defaultUserRole}
+                  label="Varsayılan Kullanıcı Rolü"
+                  onChange={handleSelectChange}
+                >
+                  <MenuItem value="user">Standart Kullanıcı</MenuItem>
+                  <MenuItem value="editor">Editör</MenuItem>
+                  <MenuItem value="manager">Takım Lideri</MenuItem>
+                </Select>
+              </FormControl>
             </CardContent>
           </Card>
         </Grid>
         
         {/* Otomatik Proje Atama Ayarları */}
-        <Grid item xs={12}>
+        <Grid item xs={12} md={6}>
           <Card sx={{ mb: 3 }}>
             <CardContent>
               <Typography variant="h6" gutterBottom>
@@ -203,22 +275,21 @@ export const SiteSettings: React.FC = () => {
               </Typography>
               <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
                 <InfoIcon sx={{ fontSize: 16, mr: 0.5, verticalAlign: 'text-bottom' }} />
-                Belirtilen e-posta uzantısı ile kayıt olan kullanıcıları otomatik olarak projeye atayabilirsiniz
+                Yeni kullanıcıların otomatik olarak projelere atanması
               </Typography>
               
-              <FormControl fullWidth sx={{ mb: 2 }}>
-                <InputLabel id="auto-assign-label">Otomatik Atama</InputLabel>
-                <Select
-                  labelId="auto-assign-label"
-                  id="auto-assign-select"
-                  value={settings.autoAssignProject ? 'true' : 'false'}
-                  label="Otomatik Atama"
-                  onChange={handleSelectChange}
-                >
-                  <MenuItem value="true">Aktif</MenuItem>
-                  <MenuItem value="false">Pasif</MenuItem>
-                </Select>
-              </FormControl>
+              <FormControlLabel
+                control={
+                  <Switch
+                    checked={settings.autoAssignProject}
+                    onChange={handleSwitchChange}
+                    name="autoAssignProject"
+                    color="primary"
+                  />
+                }
+                label="Yeni kullanıcıları otomatik olarak varsayılan projeye ata"
+                sx={{ mb: 2, display: 'block' }}
+              />
             </CardContent>
           </Card>
         </Grid>
@@ -231,6 +302,7 @@ export const SiteSettings: React.FC = () => {
           startIcon={<SaveIcon />}
           onClick={handleSave}
           disabled={saving}
+          size="large"
         >
           {saving ? 'Kaydediliyor...' : 'Ayarları Kaydet'}
         </Button>

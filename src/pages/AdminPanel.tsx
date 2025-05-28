@@ -24,12 +24,15 @@ import SchoolIcon from '@mui/icons-material/School';
 import PeopleIcon from '@mui/icons-material/People';
 import MapIcon from '@mui/icons-material/Map';
 import LogoutIcon from '@mui/icons-material/Logout';
+import WorkIcon from '@mui/icons-material/Work';
+import BusinessIcon from '@mui/icons-material/Business';
 
 import { useAuth } from '../context/AuthContext';
 import { SiteSettings } from '../components/admin/SiteSettings';
 import { EducationManager } from '../components/admin/EducationManager';
 import { RoadmapManager } from '../components/admin/RoadmapManager';
-import { TeamManager } from '../components/admin/TeamManager';
+import { ProjectManager } from '../components/admin/ProjectManager';
+import { CompanyHierarchy } from '../components/admin/CompanyHierarchy';
 
 // Admin panel için özel bileşen
 const AdminPanel: React.FC = () => {
@@ -158,8 +161,10 @@ const AdminPanel: React.FC = () => {
         return <EducationManager />;
       case 2: // Roadmap Yönetimi
         return <RoadmapManager />;
-      case 3: // Takım Yönetimi
-        return <TeamManager />;
+      case 3: // Proje Yönetimi
+        return <ProjectManager />;
+      case 4: // Şirket Hiyerarşisi
+        return <CompanyHierarchy />;
       default:
         return <SiteSettings />;
     }
@@ -213,7 +218,8 @@ const AdminPanel: React.FC = () => {
               <Tab icon={<SettingsIcon />} label="Site Ayarları" iconPosition="start" />
               <Tab icon={<SchoolIcon />} label="Eğitim Yönetimi" iconPosition="start" />
               <Tab icon={<MapIcon />} label="Roadmap Yönetimi" iconPosition="start" />
-              <Tab icon={<PeopleIcon />} label="Takım Yönetimi" iconPosition="start" />
+              <Tab icon={<WorkIcon />} label="Proje Yönetimi" iconPosition="start" />
+              <Tab icon={<BusinessIcon />} label="Şirket Hiyerarşisi" iconPosition="start" />
             </Tabs>
             
             {renderAdminPanelContent()}

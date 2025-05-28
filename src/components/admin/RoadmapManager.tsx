@@ -49,11 +49,21 @@ import FlagIcon from '@mui/icons-material/Flag';
 import { DragDropContext, Droppable, Draggable, DropResult, DroppableProvided, DraggableProvided } from 'react-beautiful-dnd';
 
 // Tip tanımlamaları
+interface User {
+  id: string;
+  username: string;
+  name: string;
+  email: string;
+}
+
 interface LearningStep {
   id: string;
   name: string;
   order: number;
-  courses: string[]; // Kurs ID listesi
+  type: 'course' | 'link' | 'video'; // Adım tipi
+  courses: string[]; // Kurs ID listesi (sadece course tipinde dolu olacak)
+  linkUrl?: string; // Dış site linki (sadece link tipinde dolu olacak)
+  videoUrl?: string; // Video linki (sadece video tipinde dolu olacak)
 }
 
 interface Roadmap {
@@ -62,6 +72,7 @@ interface Roadmap {
   description: string;
   steps: LearningStep[];
   enrolledUsers?: number;
+  assignedUsers?: string[]; // Atanmış kullanıcı ID'leri
 }
 
 interface Course {
@@ -72,10 +83,13 @@ interface Course {
 interface UserProgress {
   userId: string;
   username: string;
+  name: string;
+  email: string;
   roadmapId: string;
   currentStep: string; // Adım ID
   completedSteps: string[]; // Tamamlanan adım ID'leri listesi
   progress: number; // Yüzde olarak ilerleme
+  lastActivity?: string; // Son aktivite tarihi
 }
 
 // Mock API servis fonksiyonları
@@ -89,24 +103,36 @@ const mockRoadmapService = {
             title: 'Frontend Geliştirici Yolu',
             description: 'Modern web geliştirme ile frontend teknolojilerini öğrenin',
             enrolledUsers: 12,
+            assignedUsers: ['u1', 'u2', 'u3'],
             steps: [
               {
                 id: 's1',
                 name: 'HTML ve CSS Temelleri',
                 order: 0,
-                courses: ['c1', 'c2']
+                courses: ['c1', 'c2'],
+                type: 'course'
               },
               {
                 id: 's2',
                 name: 'JavaScript',
                 order: 1,
-                courses: ['c3']
+                courses: ['c3'],
+                type: 'course'
               },
               {
                 id: 's3',
-                name: 'React.js',
+                name: 'MDN Dokümantasyonu',
                 order: 2,
-                courses: ['c4', 'c5']
+                linkUrl: 'https://developer.mozilla.org',
+                courses: [],
+                type: 'link'
+              },
+              {
+                id: 's4',
+                name: 'React.js',
+                order: 3,
+                courses: ['c4', 'c5'],
+                type: 'course'
               }
             ]
           },
@@ -115,18 +141,29 @@ const mockRoadmapService = {
             title: 'Backend Geliştirici Yolu',
             description: 'API tasarımı ve arka uç geliştirme becerilerini edinme',
             enrolledUsers: 8,
+            assignedUsers: ['u4', 'u5'],
             steps: [
               {
-                id: 's4',
-                name: 'Node.js Temelleri',
+                id: 's5',
+                name: 'Node.js Giriş Videosu',
                 order: 0,
-                courses: ['c6']
+                videoUrl: 'https://www.youtube.com/embed/TlB_eWDSMt4',
+                courses: [],
+                type: 'video'
               },
               {
-                id: 's5',
-                name: 'Express ve REST API',
+                id: 's6',
+                name: 'Node.js Temelleri',
                 order: 1,
-                courses: ['c7', 'c8']
+                courses: ['c6'],
+                type: 'course'
+              },
+              {
+                id: 's7',
+                name: 'Express ve REST API',
+                order: 2,
+                courses: ['c7', 'c8'],
+                type: 'course'
               }
             ]
           }
@@ -147,6 +184,21 @@ const mockRoadmapService = {
           { id: 'c6', title: 'Node.js Giriş' },
           { id: 'c7', title: 'Express.js ile API Geliştirme' },
           { id: 'c8', title: 'MongoDB ve Mongoose' }
+        ]);
+      }, 600);
+    });
+  },
+  
+  getUsers: async (): Promise<User[]> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        resolve([
+          { id: 'u1', username: 'ahmetyilmaz', name: 'Ahmet Yılmaz', email: 'ahmet@example.com' },
+          { id: 'u2', username: 'aysedemir', name: 'Ayşe Demir', email: 'ayse@example.com' },
+          { id: 'u3', username: 'mehmetcan', name: 'Mehmet Can', email: 'mehmet@example.com' },
+          { id: 'u4', username: 'zeynepkaya', name: 'Zeynep Kaya', email: 'zeynep@example.com' },
+          { id: 'u5', username: 'aliyildirim', name: 'Ali Yıldırım', email: 'ali@example.com' },
+          { id: 'u6', username: 'elifoz', name: 'Elif Öz', email: 'elif@example.com' }
         ]);
       }, 600);
     });
@@ -190,21 +242,45 @@ const mockRoadmapService = {
           {
             userId: 'u1',
             username: 'ahmetyilmaz',
+            name: 'Ahmet Yılmaz',
+            email: 'ahmet@example.com',
             roadmapId,
-            currentStep: roadmapId === '1' ? 's2' : 's4',
+            currentStep: roadmapId === '1' ? 's2' : 's5',
             completedSteps: roadmapId === '1' ? ['s1'] : [],
-            progress: roadmapId === '1' ? 33 : 0
+            progress: roadmapId === '1' ? 33 : 0,
+            lastActivity: '2023-11-15'
           },
           {
             userId: 'u2',
             username: 'aysedemir',
+            name: 'Ayşe Demir',
+            email: 'ayse@example.com',
             roadmapId,
-            currentStep: roadmapId === '1' ? 's3' : 's5',
-            completedSteps: roadmapId === '1' ? ['s1', 's2'] : ['s4'],
-            progress: roadmapId === '1' ? 66 : 50
+            currentStep: roadmapId === '1' ? 's3' : 's7',
+            completedSteps: roadmapId === '1' ? ['s1', 's2'] : ['s5', 's6'],
+            progress: roadmapId === '1' ? 66 : 50,
+            lastActivity: '2023-11-20'
           }
         ]);
       }, 1000);
+    });
+  },
+  
+  assignUserToRoadmap: async (roadmapId: string, userId: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log('Kullanıcı roadmap\'e atandı:', roadmapId, userId);
+        resolve(true);
+      }, 800);
+    });
+  },
+  
+  removeUserFromRoadmap: async (roadmapId: string, userId: string): Promise<boolean> => {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        console.log('Kullanıcı roadmap\'den çıkarıldı:', roadmapId, userId);
+        resolve(true);
+      }, 800);
     });
   }
 };
@@ -226,6 +302,7 @@ const reorder = (list: LearningStep[], startIndex: number, endIndex: number): Le
 export const RoadmapManager: React.FC = () => {
   const [roadmaps, setRoadmaps] = useState<Roadmap[]>([]);
   const [courses, setCourses] = useState<Course[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [selectedRoadmap, setSelectedRoadmap] = useState<Roadmap | null>(null);
   const [userProgress, setUserProgress] = useState<UserProgress[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -238,6 +315,10 @@ export const RoadmapManager: React.FC = () => {
   const [stepDialogOpen, setStepDialogOpen] = useState<boolean>(false);
   const [deleteDialogOpen, setDeleteDialogOpen] = useState<boolean>(false);
   const [progressDialogOpen, setProgressDialogOpen] = useState<boolean>(false);
+  const [userAssignDialogOpen, setUserAssignDialogOpen] = useState<boolean>(false);
+  
+  // Seçilen kullanıcılar
+  const [selectedUsers, setSelectedUsers] = useState<User[]>([]);
   
   // Form verileri
   const [formRoadmapData, setFormRoadmapData] = useState<{
@@ -254,10 +335,14 @@ export const RoadmapManager: React.FC = () => {
     id: string;
     name: string;
     courses: string[];
+    type: 'course' | 'link' | 'video';
+    linkUrl?: string;
+    videoUrl?: string;
   }>({
     id: '',
     name: '',
-    courses: []
+    courses: [],
+    type: 'course'
   });
   
   // İlk yüklemede verileri getir
@@ -266,14 +351,16 @@ export const RoadmapManager: React.FC = () => {
       try {
         setLoading(true);
         
-        // Roadmap ve kurs verilerini eş zamanlı yükle
-        const [roadmapData, courseData] = await Promise.all([
+        // Roadmap, kurs ve kullanıcı verilerini eş zamanlı yükle
+        const [roadmapData, courseData, userData] = await Promise.all([
           mockRoadmapService.getRoadmaps(),
-          mockRoadmapService.getCourses()
+          mockRoadmapService.getCourses(),
+          mockRoadmapService.getUsers()
         ]);
         
         setRoadmaps(roadmapData);
         setCourses(courseData);
+        setUsers(userData);
       } catch (err) {
         setError('Veriler yüklenirken bir hata oluştu');
         console.error(err);
@@ -314,12 +401,91 @@ export const RoadmapManager: React.FC = () => {
     }));
   };
   
+  // Adım tipini değiştir
+  const handleStepTypeChange = (e: SelectChangeEvent) => {
+    const type = e.target.value as 'course' | 'link' | 'video';
+    setFormStepData(prev => ({
+      ...prev,
+      type,
+      // Tip değiştiğinde ilgili alanları temizle
+      courses: type === 'course' ? prev.courses : [],
+      linkUrl: type === 'link' ? prev.linkUrl : undefined,
+      videoUrl: type === 'video' ? prev.videoUrl : undefined
+    }));
+  };
+  
   // Adım kurslarını değiştir
   const handleCourseSelect = (_event: React.SyntheticEvent, values: Course[]) => {
     setFormStepData(prev => ({
       ...prev,
       courses: values.map(course => course.id)
     }));
+  };
+  
+  // Kullanıcı seçimi değiştir
+  const handleUserSelect = (_event: React.SyntheticEvent, values: User[]) => {
+    setSelectedUsers(values);
+  };
+  
+  // Kullanıcı atama diyaloğunu aç
+  const handleOpenUserAssignDialog = (roadmap: Roadmap) => {
+    setSelectedRoadmap(roadmap);
+    
+    // Halihazırda atanmış kullanıcıları seç
+    const assignedUserIds = roadmap.assignedUsers || [];
+    const assignedUsers = users.filter(user => assignedUserIds.includes(user.id));
+    setSelectedUsers(assignedUsers);
+    
+    setUserAssignDialogOpen(true);
+  };
+  
+  // Kullanıcıları roadmap'e ata
+  const handleAssignUsers = async () => {
+    if (!selectedRoadmap) return;
+    
+    try {
+      setSaving(true);
+      
+      // Mevcut ve yeni atanmış kullanıcı ID'lerini al
+      const currentAssignedUserIds = selectedRoadmap.assignedUsers || [];
+      const newAssignedUserIds = selectedUsers.map(user => user.id);
+      
+      // Eklenen ve çıkarılan kullanıcıları belirle
+      const addedUserIds = newAssignedUserIds.filter(id => !currentAssignedUserIds.includes(id));
+      const removedUserIds = currentAssignedUserIds.filter(id => !newAssignedUserIds.includes(id));
+      
+      // Ekleme ve çıkarma işlemlerini yap
+      const addPromises = addedUserIds.map(userId => 
+        mockRoadmapService.assignUserToRoadmap(selectedRoadmap.id, userId)
+      );
+      
+      const removePromises = removedUserIds.map(userId => 
+        mockRoadmapService.removeUserFromRoadmap(selectedRoadmap.id, userId)
+      );
+      
+      await Promise.all([...addPromises, ...removePromises]);
+      
+      // Roadmap'i güncelle
+      const updatedRoadmap = {
+        ...selectedRoadmap,
+        assignedUsers: newAssignedUserIds
+      };
+      
+      // Durum güncellemesi
+      setRoadmaps(prev => 
+        prev.map(roadmap => 
+          roadmap.id === selectedRoadmap.id ? updatedRoadmap : roadmap
+        )
+      );
+      
+      setSuccess('Kullanıcı atamaları başarıyla güncellendi');
+      setUserAssignDialogOpen(false);
+    } catch (err) {
+      setError('Kullanıcı atamaları güncellenirken bir hata oluştu');
+      console.error(err);
+    } finally {
+      setSaving(false);
+    }
   };
   
   // Yeni roadmap oluştur
@@ -365,7 +531,8 @@ export const RoadmapManager: React.FC = () => {
     setFormStepData({
       id: newStepId,
       name: '',
-      courses: []
+      courses: [],
+      type: 'course'
     });
     
     setStepDialogOpen(true);
@@ -376,7 +543,10 @@ export const RoadmapManager: React.FC = () => {
     setFormStepData({
       id: step.id,
       name: step.name,
-      courses: [...step.courses]
+      courses: [...step.courses],
+      type: step.type,
+      linkUrl: step.linkUrl,
+      videoUrl: step.videoUrl
     });
     
     setStepDialogOpen(true);
@@ -460,7 +630,7 @@ export const RoadmapManager: React.FC = () => {
         ...prev,
         steps: prev.steps.map(step => 
           step.id === formStepData.id 
-            ? { ...step, name: formStepData.name, courses: formStepData.courses }
+            ? { ...step, name: formStepData.name, courses: formStepData.courses, type: formStepData.type, linkUrl: formStepData.linkUrl, videoUrl: formStepData.videoUrl }
             : step
         )
       }));
@@ -470,7 +640,10 @@ export const RoadmapManager: React.FC = () => {
         id: formStepData.id,
         name: formStepData.name,
         order: formRoadmapData.steps.length,
-        courses: formStepData.courses
+        courses: formStepData.courses,
+        type: formStepData.type,
+        linkUrl: formStepData.linkUrl,
+        videoUrl: formStepData.videoUrl
       };
       
       setFormRoadmapData(prev => ({
@@ -661,6 +834,12 @@ export const RoadmapManager: React.FC = () => {
                 <Button 
                   size="small" 
                   startIcon={<PeopleIcon />}
+                  onClick={() => handleOpenUserAssignDialog(roadmap)}
+                >
+                  Kullanıcıları Atama
+                </Button>
+                <Button 
+                  size="small" 
                   onClick={() => handleViewProgress(roadmap)}
                 >
                   İlerlemeyi Görüntüle
@@ -1002,6 +1181,42 @@ export const RoadmapManager: React.FC = () => {
         </DialogContent>
         <DialogActions>
           <Button onClick={() => setProgressDialogOpen(false)}>Kapat</Button>
+        </DialogActions>
+      </Dialog>
+      
+      {/* Kullanıcı Atama Dialog */}
+      <Dialog
+        open={userAssignDialogOpen}
+        onClose={() => setUserAssignDialogOpen(false)}
+        fullWidth
+        maxWidth="md"
+      >
+        <DialogTitle>Kullanıcıları Öğrenme Yolu'na Atama</DialogTitle>
+        <DialogContent>
+          <Autocomplete
+            multiple
+            options={users}
+            getOptionLabel={(option) => option.name}
+            value={selectedUsers}
+            onChange={handleUserSelect}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="Kullanıcılar"
+                placeholder="Kullanıcı seçin"
+              />
+            )}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={() => setUserAssignDialogOpen(false)}>İptal</Button>
+          <Button 
+            onClick={handleAssignUsers} 
+            variant="contained" 
+            disabled={saving || selectedUsers.length === 0}
+          >
+            {saving ? 'Atanıyor...' : 'Atama'}
+          </Button>
         </DialogActions>
       </Dialog>
       
